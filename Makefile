@@ -125,7 +125,6 @@ else
 	wget -q --show-progress -O /tmp/$(FFDIR).tar.xz https://www.ffmpeg.org/releases/$(FFDIR).tar.xz
 endif
 	tar xf /tmp/$(FFDIR).tar.xz
-	mv $(FFDIR)/VERSION $(FFDIR)/VERSION.bak
 
 $(FFDIR)/config.asm: | $(FFDIR)/configure
 	@echo "(info) please wait ..."
@@ -138,6 +137,10 @@ $(FFDIR)/config.asm: | $(FFDIR)/configure
 $(FFDIR)/libavcodec/libavcodec.a: | $(FFDIR)/config.asm
 	cat $(FFDIR)/Makefile
 	$(MAKE) -C $(FFDIR) -j$(NJOBS)
+ifeq ($(_OS), Darwin)
+	# avoid collision with C++ <version> header on case-insensitive FS
+	-mv $(FFDIR)/VERSION $(FFDIR)/VERSION.bak
+endif
 
 $(FFDIR):
 ifneq ($(FF_VER), shared)
