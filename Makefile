@@ -41,18 +41,18 @@ else
 	_OS := $(shell uname)
 endif
 
-FFDIR := ffmpeg-$(FF_VER)
+FF_DIR := ffmpeg-$(FF_VER)
 
 ifeq ($(FF_VER), shared)
 	CXXFLAGS += -isystem/usr/include/ffmpeg
 	LDFLAGS += -lavformat -lavcodec -lavutil
 else
-	CXXFLAGS += -isystem./$(FFDIR)
-	LDFLAGS += -L$(FFDIR)/libavformat -lavformat
-	LDFLAGS += -L$(FFDIR)/libavcodec -lavcodec
-	LDFLAGS += -L$(FFDIR)/libavutil -lavutil
-	#LDFLAGS += -L$(FFDIR)/libswscale/ -lswresample
-	#LDFLAGS += -L$(FFDIR)/libavresample -lavresample
+	CXXFLAGS += -isystem./$(FF_DIR)
+	LDFLAGS += -L$(FF_DIR)/libavformat -lavformat
+	LDFLAGS += -L$(FF_DIR)/libavcodec -lavcodec
+	LDFLAGS += -L$(FF_DIR)/libavutil -lavutil
+	#LDFLAGS += -L$(FF_DIR)/libswscale/ -lswresample
+	#LDFLAGS += -L$(FF_DIR)/libavresample -lavresample
 	#LDFLAGS += -lz -lbz2 -lX11 -lva -lva-drm -lva-x11 -llzma
 	LDFLAGS += -lpthread -ldl
 
@@ -142,31 +142,31 @@ CURL := $(shell command -v curl 2>/dev/null)
 
 all: $(EXE)
 
-$(FFDIR)/configure:
+$(FF_DIR)/configure:
 	@#read -p "Press [ENTER] if you agree to build ffmpeg-${FF_VER} now.. " input
-	@echo "(info) downloading $(FFDIR) ..."
+	@echo "(info) downloading $(FF_DIR) ..."
 ifdef CURL
-	curl -o /tmp/$(FFDIR).tar.xz https://www.ffmpeg.org/releases/$(FFDIR).tar.xz
+	curl -o /tmp/$(FF_DIR).tar.xz https://www.ffmpeg.org/releases/$(FF_DIR).tar.xz
 else
-	wget -q --show-progress -O /tmp/$(FFDIR).tar.xz https://www.ffmpeg.org/releases/$(FFDIR).tar.xz
+	wget -q --show-progress -O /tmp/$(FF_DIR).tar.xz https://www.ffmpeg.org/releases/$(FF_DIR).tar.xz
 endif
-	tar xf /tmp/$(FFDIR).tar.xz
-	mv $(FFDIR)/VERSION $(FFDIR)/VERSION.bak
+	tar xf /tmp/$(FF_DIR).tar.xz
+	mv $(FF_DIR)/VERSION $(FF_DIR)/VERSION.bak
 
-$(FFDIR)/config.asm: | $(FFDIR)/configure
+$(FF_DIR)/config.asm: | $(FF_DIR)/configure
 	@echo "(info) please wait ..."
-	cd $(FFDIR); ./configure $(FF_CONFIG_FLAGS)
+	cd $(FF_DIR); ./configure $(FF_CONFIG_FLAGS)
 
-$(FFDIR)/libavcodec/libavcodec.a: | $(FFDIR)/config.asm
-	cat $(FFDIR)/Makefile
-	$(MAKE) -C $(FFDIR) -j$(NJOBS)
+$(FF_DIR)/libavcodec/libavcodec.a: | $(FF_DIR)/config.asm
+	cat $(FF_DIR)/Makefile
+	$(MAKE) -C $(FF_DIR) -j$(NJOBS)
 
-$(FFDIR):
+$(FF_DIR):
 ifneq ($(FF_VER), shared)
-$(FFDIR): | $(FFDIR)/libavcodec/libavcodec.a
+$(FF_DIR): | $(FF_DIR)/libavcodec/libavcodec.a
 endif
 
-print_info: | $(FFDIR)
+print_info: | $(FF_DIR)
 	@echo untrunc: $(VER)
 	@echo ffmpeg: $(FF_VER)
 	@echo
