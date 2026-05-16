@@ -99,6 +99,8 @@ ifneq ($(FF_VER), shared)
 	FF_MAJOR_VER := $(word 1, $(subst ., ,$(FF_VER)))
 	ifeq ($(shell test $(FF_MAJOR_VER) -lt 4; echo $$?),0)
 		EXTRA_FF_OPTS := --disable-vda
+	else ifeq ($(shell test $(FF_MAJOR_VER) -gt 6; echo $$?),0)
+		EXTRA_FF_OPTS := --disable-libdrm
 	endif
 else
 	EXTRA_FF_OPTS :=
