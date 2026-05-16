@@ -18,7 +18,9 @@ typedef struct FFCodec {
     int (*update_thread_context_for_user)(struct AVCodecContext *dst,
                                             const struct AVCodecContext *src);
     const FFCodecDefault *defaults;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(61, 13, 100)
     void (*init_static_data)(struct FFCodec *codec);
+#endif
     int (*init)(struct AVCodecContext *);
     union {
         int (*decode)(struct AVCodecContext *avctx, struct AVFrame *frame,
