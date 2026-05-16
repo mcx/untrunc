@@ -21,6 +21,12 @@ else ifeq ($(TARGET), $(_EXE)-41)
 else ifeq ($(TARGET), $(_EXE)-60)
 	FF_VER := 6.0
 	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-70)
+	FF_VER := 7.0
+	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-71)
+	FF_VER := 7.1
+	EXE := $(TARGET)
 endif
 
 ifeq ($(OS),Windows_NT)
