@@ -27,6 +27,12 @@ else ifeq ($(TARGET), $(_EXE)-70)
 else ifeq ($(TARGET), $(_EXE)-71)
 	FF_VER := 7.1
 	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-80)
+	FF_VER := 8.0
+	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-81)
+	FF_VER := 8.1
+	EXE := $(TARGET)
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -101,15 +107,27 @@ ifeq ($(NJOBS), 0)
 	NJOBS = 1
 endif
 
+CONFIG_FLAGS := --disable-doc \
+	--disable-everything --enable-decoders --disable-vdpau --enable-demuxers --enable-protocol=file \
+	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter \
+	--disable-xlib --disable-vaapi --disable-zlib --disable-bzlib --disable-lzma \
+	--disable-audiotoolbox --disable-videotoolbox
+
 ifneq ($(FF_VER), shared)
 	FF_MAJOR_VER := $(word 1, $(subst ., ,$(FF_VER)))
+
+	# Flags that have been removed
 	ifeq ($(shell test $(FF_MAJOR_VER) -lt 4; echo $$?),0)
-		EXTRA_FF_OPTS := --disable-vda
-	else ifeq ($(shell test $(FF_MAJOR_VER) -gt 6; echo $$?),0)
-		EXTRA_FF_OPTS := --disable-libdrm
+		CONFIG_FLAGS += --disable-vda
 	endif
-else
-	EXTRA_FF_OPTS :=
+	ifeq ($(shell test $(FF_MAJOR_VER) -lt 8; echo $$?),0)
+		CONFIG_FLAGS += --disable-postproc
+	endif
+
+	# Flags that have been added
+	ifeq ($(shell test $(FF_MAJOR_VER) -gt 6; echo $$?),0)
+		CONFIG_FLAGS += --disable-libdrm
+	endif
 endif
 
 #$(info $$OBJ is [${OBJ}])
@@ -137,11 +155,7 @@ endif
 
 $(FFDIR)/config.asm: | $(FFDIR)/configure
 	@echo "(info) please wait ..."
-	cd $(FFDIR); ./configure --disable-doc --disable-programs \
-	--disable-everything --enable-decoders --disable-vdpau --enable-demuxers --enable-protocol=file \
-	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter --disable-postproc \
-	--disable-xlib --disable-vaapi --disable-zlib --disable-bzlib --disable-lzma \
-	--disable-audiotoolbox --disable-videotoolbox $(EXTRA_FF_OPTS)
+	cd $(FFDIR); ./configure $(CONFIG_FLAGS)
 
 $(FFDIR)/libavcodec/libavcodec.a: | $(FFDIR)/config.asm
 	cat $(FFDIR)/Makefile
