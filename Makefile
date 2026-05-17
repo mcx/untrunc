@@ -45,6 +45,8 @@ else
 	LDFLAGS += -lpthread -ldl
 
 	ifeq ($(_OS), Darwin)
+		# deprioritize implicit -I /usr/local/include to -isystem so local FFmpeg headers take precedence
+		CXXFLAGS += -isystem/usr/local/include
 		LDFLAGS += -liconv
 	endif
 endif
