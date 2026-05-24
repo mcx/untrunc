@@ -175,10 +175,10 @@ $(PCH_OBJ): $(PCH)
 	$(CXX) $(CXXFLAGS) -x c++-header -o $@ -c $<
 
 ifeq ($(USE_GCH),1)
-$(DIR)/%.o: %.cpp $(PCH_OBJ)
+$(DIR)/%.o: %.cpp $(PCH_OBJ) | $(FFDIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Winvalid-pch -include $(PCH_INC) -o $@ -c $<
 else
-$(DIR)/%.o: %.cpp
+$(DIR)/%.o: %.cpp | $(FFDIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $<
 endif
 
