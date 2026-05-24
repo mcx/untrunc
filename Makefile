@@ -91,8 +91,11 @@ ifeq ($(TARGET), $(_EXE)-gui)
 	endif
 endif
 
-NPROC = $(shell command -v nproc >/dev/null && nproc || echo 1)
-NJOBS = $(shell echo $$(( $(NPROC) / 3)) )
+ifeq ($(_OS), Darwin)
+	NJOBS = $(shell echo $$(( $$(sysctl -n hw.physicalcpu) - 1 )) )
+else
+	NJOBS = $(shell echo $$(( $$(nproc) / 3 )) )
+endif
 ifeq ($(NJOBS), 0)
 	NJOBS = 1
 endif
