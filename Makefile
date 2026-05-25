@@ -134,7 +134,7 @@ endif
 $(FFDIR)/config.asm: | $(FFDIR)/configure
 	@echo "(info) please wait ..."
 	cd $(FFDIR); ./configure --disable-doc --disable-programs \
-	--disable-everything --enable-decoders --disable-vdpau --enable-demuxers --enable-protocol=file \
+	--disable-everything --enable-decoders --disable-decoder=h264_vda --disable-vdpau --enable-demuxers --enable-protocol=file \
 	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter --disable-postproc \
 	--disable-xlib --disable-vaapi --disable-zlib --disable-bzlib --disable-lzma \
 	--disable-audiotoolbox --disable-videotoolbox $(EXTRA_FF_OPTS)
