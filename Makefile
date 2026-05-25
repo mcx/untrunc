@@ -120,6 +120,7 @@ $(shell mkdir -p $(dir $(OBJ_GUI)) 2>/dev/null)
 $(shell mkdir -p $(DIR)/src/avc1 $(DIR)/src/hvc1 2>/dev/null)
 
 CURL := $(shell command -v curl 2>/dev/null)
+download = $(if $(CURL),curl -L -o $(1) $(2),wget -q --show-progress -O $(1) $(2))
 
 .PHONY: all clean force
 
@@ -129,15 +130,15 @@ all: $(EXE)
 $(FFDIR)/configure:
 	@#read -p "Press [ENTER] if you agree to build ffmpeg-${FF_VER} now.. " input
 	@echo "(info) downloading $(FFDIR) ..."
-ifdef CURL
-	curl -o /tmp/$(FFDIR).tar.xz https://www.ffmpeg.org/releases/$(FFDIR).tar.xz
-else
-	wget -q --show-progress -O /tmp/$(FFDIR).tar.xz https://www.ffmpeg.org/releases/$(FFDIR).tar.xz
-endif
+	$(call download,/tmp/$(FFDIR).tar.xz,https://www.ffmpeg.org/releases/$(FFDIR).tar.xz)
 	tar xf /tmp/$(FFDIR).tar.xz
 
 $(FFDIR)/config.asm: | $(FFDIR)/configure
 	@echo "(info) please wait ..."
+	if test "$(FF_MAJOR_VER)" -lt 6; then \
+		$(call download,/tmp/ffmpeg-mathops-binutils.patch,https://git.ffmpeg.org/gitweb/ffmpeg.git/patch/effadce6c756247ea8bae32dc13bb3e6f464f0eb); \
+		patch -d $(FFDIR) -p1 < /tmp/ffmpeg-mathops-binutils.patch; \
+	fi
 	cd $(FFDIR); ./configure --disable-doc --disable-programs \
 	--disable-everything --enable-decoders --disable-decoder=h264_vda --disable-vdpau --enable-demuxers --enable-protocol=file \
 	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter --disable-postproc \
