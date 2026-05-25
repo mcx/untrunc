@@ -105,6 +105,11 @@ ifneq ($(FF_VER), shared)
 	ifeq ($(shell test $(FF_MAJOR_VER) -lt 4; echo $$?),0)
 		EXTRA_FF_OPTS := --disable-vda
 	endif
+	ifeq ($(_OS), Darwin)
+		ifeq ($(shell test $(FF_MAJOR_VER) -lt 5; echo $$?),0)
+			EXTRA_FF_OPTS += --extra-cflags="-Wno-error=incompatible-function-pointer-types"
+		endif
+	endif
 else
 	EXTRA_FF_OPTS :=
 endif
