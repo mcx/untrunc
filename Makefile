@@ -27,6 +27,12 @@ else ifeq ($(TARGET), $(_EXE)-70)
 else ifeq ($(TARGET), $(_EXE)-71)
 	FF_VER := 7.1
 	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-80)
+	FF_VER := 8.0
+	EXE := $(TARGET)
+else ifeq ($(TARGET), $(_EXE)-81)
+	FF_VER := 8.1
+	EXE := $(TARGET)
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -35,18 +41,18 @@ else
 	_OS := $(shell uname)
 endif
 
-FFDIR := ffmpeg-$(FF_VER)
+FF_DIR := ffmpeg-$(FF_VER)
 
 ifeq ($(FF_VER), shared)
 	CXXFLAGS += -isystem/usr/include/ffmpeg
 	LDFLAGS += -lavformat -lavcodec -lavutil
 else
-	CXXFLAGS += -isystem./$(FFDIR)
-	LDFLAGS += -L$(FFDIR)/libavformat -lavformat
-	LDFLAGS += -L$(FFDIR)/libavcodec -lavcodec
-	LDFLAGS += -L$(FFDIR)/libavutil -lavutil
-	#LDFLAGS += -L$(FFDIR)/libswscale/ -lswresample
-	#LDFLAGS += -L$(FFDIR)/libavresample -lavresample
+	CXXFLAGS += -isystem./$(FF_DIR)
+	LDFLAGS += -L$(FF_DIR)/libavformat -lavformat
+	LDFLAGS += -L$(FF_DIR)/libavcodec -lavcodec
+	LDFLAGS += -L$(FF_DIR)/libavutil -lavutil
+	#LDFLAGS += -L$(FF_DIR)/libswscale/ -lswresample
+	#LDFLAGS += -L$(FF_DIR)/libavresample -lavresample
 	#LDFLAGS += -lz -lbz2 -lX11 -lva -lva-drm -lva-x11 -llzma
 	LDFLAGS += -lpthread -ldl
 
@@ -106,20 +112,32 @@ ifeq ($(NJOBS), 0)
 	NJOBS = 1
 endif
 
+FF_CONFIG_FLAGS := --disable-doc \
+	--disable-everything --enable-decoders --disable-vdpau --enable-demuxers --enable-protocol=file \
+	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter \
+	--disable-xlib --disable-vaapi --disable-zlib --disable-bzlib --disable-lzma \
+	--disable-audiotoolbox --disable-videotoolbox
+
 ifneq ($(FF_VER), shared)
 	FF_MAJOR_VER := $(word 1, $(subst ., ,$(FF_VER)))
+
+	# Flags that have been removed
 	ifeq ($(shell test $(FF_MAJOR_VER) -lt 4; echo $$?),0)
-		EXTRA_FF_OPTS := --disable-vda
-	else ifeq ($(shell test $(FF_MAJOR_VER) -gt 6; echo $$?),0)
-		EXTRA_FF_OPTS := --disable-libdrm
+		FF_CONFIG_FLAGS += --disable-vda
+	endif
+	ifeq ($(shell test $(FF_MAJOR_VER) -lt 8; echo $$?),0)
+		FF_CONFIG_FLAGS += --disable-postproc
+	endif
+
+	# Flags that have been added
+	ifeq ($(shell test $(FF_MAJOR_VER) -gt 6; echo $$?),0)
+		FF_CONFIG_FLAGS += --disable-libdrm
 	endif
 	ifeq ($(_OS), Darwin)
 		ifeq ($(shell test $(FF_MAJOR_VER) -lt 5; echo $$?),0)
-			EXTRA_FF_OPTS += --extra-cflags="-Wno-error=incompatible-function-pointer-types"
+			FF_CONFIG_FLAGS += --extra-cflags="-Wno-error=incompatible-function-pointer-types"
 		endif
 	endif
-else
-	EXTRA_FF_OPTS :=
 endif
 
 #$(info $$OBJ is [${OBJ}])
@@ -135,38 +153,30 @@ download = $(if $(CURL),curl -L -o $(1) $(2),wget -q --show-progress -O $(1) $(2
 
 all: $(EXE)
 
-$(FFDIR)/configure:
+$(FF_DIR)/configure:
 	@#read -p "Press [ENTER] if you agree to build ffmpeg-${FF_VER} now.. " input
-	@echo "(info) downloading $(FFDIR) ..."
-	$(call download,/tmp/$(FFDIR).tar.xz,https://www.ffmpeg.org/releases/$(FFDIR).tar.xz)
-	tar xf /tmp/$(FFDIR).tar.xz
+	@echo "(info) downloading $(FF_DIR) ..."
+	$(call download,/tmp/$(FF_DIR).tar.xz,https://www.ffmpeg.org/releases/$(FF_DIR).tar.xz)
+	tar xf /tmp/$(FF_DIR).tar.xz
 
-$(FFDIR)/config.asm: | $(FFDIR)/configure
+$(FF_DIR)/config.asm: | $(FF_DIR)/configure
 	@echo "(info) please wait ..."
-	if test "$(FF_MAJOR_VER)" -lt 6; then \
-		$(call download,/tmp/ffmpeg-mathops-binutils.patch,https://git.ffmpeg.org/gitweb/ffmpeg.git/patch/effadce6c756247ea8bae32dc13bb3e6f464f0eb); \
-		patch -d $(FFDIR) -p1 < /tmp/ffmpeg-mathops-binutils.patch; \
-	fi
-	cd $(FFDIR); ./configure --disable-doc --disable-programs \
-	--disable-everything --enable-decoders --disable-decoder=h264_vda --disable-vdpau --enable-demuxers --enable-protocol=file \
-	--disable-avdevice --disable-swresample --disable-swscale --disable-avfilter --disable-postproc \
-	--disable-xlib --disable-vaapi --disable-zlib --disable-bzlib --disable-lzma \
-	--disable-audiotoolbox --disable-videotoolbox $(EXTRA_FF_OPTS)
+	cd $(FF_DIR); ./configure $(FF_CONFIG_FLAGS)
 
-$(FFDIR)/libavcodec/libavcodec.a: | $(FFDIR)/config.asm
-	cat $(FFDIR)/Makefile
-	$(MAKE) -C $(FFDIR) -j$(NJOBS)
+$(FF_DIR)/libavcodec/libavcodec.a: | $(FF_DIR)/config.asm
+	cat $(FF_DIR)/Makefile
+	$(MAKE) -C $(FF_DIR) -j$(NJOBS)
 ifeq ($(_OS), Darwin)
 	# avoid collision with C++ <version> header on case-insensitive FS
-	-mv $(FFDIR)/VERSION $(FFDIR)/VERSION.bak
+	-mv $(FF_DIR)/VERSION $(FF_DIR)/VERSION.bak
 endif
 
-$(FFDIR):
+$(FF_DIR):
 ifneq ($(FF_VER), shared)
-$(FFDIR): | $(FFDIR)/libavcodec/libavcodec.a
+$(FF_DIR): | $(FF_DIR)/libavcodec/libavcodec.a
 endif
 
-print_info: | $(FFDIR)
+print_info: | $(FF_DIR)
 	@echo untrunc: $(VER)
 	@echo ffmpeg: $(FF_VER)
 	@echo
@@ -189,10 +199,10 @@ $(PCH_OBJ): $(PCH)
 	$(CXX) $(CXXFLAGS) -x c++-header -o $@ -c $<
 
 ifeq ($(USE_GCH),1)
-$(DIR)/%.o: %.cpp $(PCH_OBJ) | $(FFDIR)
+$(DIR)/%.o: %.cpp $(PCH_OBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Winvalid-pch -include $(PCH_INC) -o $@ -c $<
 else
-$(DIR)/%.o: %.cpp | $(FFDIR)
+$(DIR)/%.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $<
 endif
 
